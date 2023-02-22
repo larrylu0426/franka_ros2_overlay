@@ -109,6 +109,47 @@ def generate_launch_description():
                                    'config/ompl_planning.yaml')
     ompl_planning_pipeline_config['move_group'].update(ompl_planning_yaml)
 
+    # Trajectory Execution Functionality
+    moveit_simple_controllers_yaml = load_yaml(
+        'franka_moveit_config', 'config/panda_controllers.yaml')
+    moveit_controllers = {
+        'moveit_simple_controller_manager':
+        moveit_simple_controllers_yaml,
+        'moveit_controller_manager':
+        'moveit_simple_controller_manager'
+        '/MoveItSimpleControllerManager',
+    }
+
+    trajectory_execution = {
+        'moveit_manage_controllers': True,
+        'trajectory_execution.allowed_execution_duration_scaling': 1.2,
+        'trajectory_execution.allowed_goal_duration_margin': 0.5,
+        'trajectory_execution.allowed_start_tolerance': 0.01,
+    }
+
+    planning_scene_monitor_parameters = {
+        'publish_planning_scene': True,
+        'publish_geometry_updates': True,
+        'publish_state_updates': True,
+        'publish_transforms_updates': True,
+    }
+
+    # Start the actual move_group node/action server
+    run_move_group_node = Node(
+        package='moveit_ros_move_group',
+        executable='move_group',
+        output='screen',
+        parameters=[
+            robot_description,
+            robot_description_semantic,
+            kinematics_yaml,
+            ompl_planning_pipeline_config,
+            trajectory_execution,
+            moveit_controllers,
+            planning_scene_monitor_parameters,
+        ],
+    )
+
     # RViz
     rviz_base = os.path.join(
         get_package_share_directory('franka_moveit_config'), 'rviz')
@@ -129,5 +170,6 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
-        robot_arg, use_fake_hardware_arg, fake_sensor_commands_arg, rviz_node
+        robot_arg, use_fake_hardware_arg, fake_sensor_commands_arg,
+        run_move_group_node, rviz_node
     ])
